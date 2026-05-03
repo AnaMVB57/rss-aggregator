@@ -1,4 +1,4 @@
-import { setUser } from "./config.js";
+import { setUser } from "../config.js";
 
 export type CommandHandler = (cmdName: string, ...args: string[]) => void;
 
@@ -7,7 +7,7 @@ export type CommandsRegistry = {
 };
 
 export function handlerLogin(cmdName: string, ...args: string[]) {
-  if (args.length === 0) {
+  if (args.length !== 1) {
     throw new Error("Please enter a valid username.");
   }
 

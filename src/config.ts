@@ -15,7 +15,7 @@ function validateConfig(rawConfig: any): Config {
   if (typeof rawConfig !== "object" || rawConfig === null) {
     throw new Error("Invalid config: expected an object");
   }
-  if (typeof rawConfig.db_url !== "string") {
+  if (typeof rawConfig.db_url !== "string" || !rawConfig.current_user_name) {
     throw new Error("Invalid config: missing or invalid db_url");
   }
   return {
@@ -24,11 +24,12 @@ function validateConfig(rawConfig: any): Config {
   };
 }
 
-function writeConfig(cfg: Config): void {
+function writeConfig(config: Config): void {
   const raw = {
-    db_url: cfg.dbUrl,
-    current_user_name: cfg.currentUserName,
+    db_url: config.dbUrl,
+    current_user_name: config.currentUserName,
   };
+  
   fs.writeFileSync(getConfigFilePath(), JSON.stringify(raw, null, 2), {
     encoding: "utf-8",
   });

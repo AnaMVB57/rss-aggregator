@@ -1,15 +1,30 @@
-import { CommandsRegistry, handlerLogin, registerCommand, runCommand } from "./commands.js";
+import {
+  type CommandsRegistry,
+  handlerLogin,
+  registerCommand,
+  runCommand,
+} from "./commands/commands.js";
 
-function main(){
-    const registry: CommandsRegistry = {};
+function main() {
+  const args = process.argv.slice(2);
 
-    registerCommand(registry, "login", handlerLogin);
-    
-    const args = process.argv.slice(2);
-    const cmdName = args[0];
-    const cmdArgs = args.slice(1);
+  if (args.length < 1) {
+    console.log("usage syntax: cli <command> [args...]");
+    process.exit(1);
+  }
 
+  const registry: CommandsRegistry = {};
+  const cmdName = args[0];
+  const cmdArgs = args.slice(1);
+
+  registerCommand(registry, "login", handlerLogin);
+
+  try {
     runCommand(registry, cmdName, ...cmdArgs);
+  } catch (error) {
+    console.error(`Error running command ${cmdName}`);
+    process.exit(1);
+  }
 }
 
 main();
