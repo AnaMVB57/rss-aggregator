@@ -22,7 +22,7 @@ function main() {
   try {
     runCommand(registry, cmdName, ...cmdArgs);
   } catch (error) {
-    console.error(`Error running command ${cmdName}`);
+    console.error(`Error running command ${cmdName} - ${error}`);
     process.exit(1);
   }
 }
