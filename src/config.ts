@@ -15,7 +15,7 @@ function validateConfig(rawConfig: any): Config {
   if (typeof rawConfig !== "object" || rawConfig === null) {
     throw new Error("Invalid config: expected an object");
   }
-  if (typeof rawConfig.db_url !== "string" || !rawConfig.current_user_name) {
+  if (typeof rawConfig.db_url !== "string") {
     throw new Error("Invalid config: missing or invalid db_url");
   }
   return {
@@ -29,7 +29,7 @@ function writeConfig(config: Config): void {
     db_url: config.dbUrl,
     current_user_name: config.currentUserName,
   };
-  
+
   fs.writeFileSync(getConfigFilePath(), JSON.stringify(raw, null, 2), {
     encoding: "utf-8",
   });

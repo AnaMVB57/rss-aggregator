@@ -1,0 +1,9 @@
+import { drizzle } from "drizzle-orm/postgres-js";
+import postgres from "postgres";
+
+import * as schema from "./schema/schema.js";
+import { readConfig } from "../../config.js"
+
+const config = readConfig();
+const connection = postgres(config.dbUrl);
+export const db = drizzle(connection, { schema });
