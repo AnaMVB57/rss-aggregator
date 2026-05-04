@@ -1,5 +1,9 @@
-import { setUser } from "../config.js";
-import { createUser, getUserByName } from "../lib/database/queries/users.js";
+import { Config, readConfig, setUser } from "../config.js";
+import {
+  createUser,
+  getUserByName,
+  getUsers,
+} from "../lib/database/queries/users.js";
 
 export async function handlerLogin(cmdName: string, ...args: string[]) {
   if (args.length !== 1) {
@@ -32,4 +36,22 @@ export async function handlerRegister(cmdName: string, ...args: string[]) {
   const newUser = await createUser(userName);
   setUser(userName);
   console.log(`User ${newUser.name} registered successfully.`);
+}
+
+export async function handlerUsers() {
+  const users = await getUsers();
+  const config = readConfig();
+
+  if (users.length === 0) {
+    console.log("No users found.");
+    return;
+  }
+
+  for (const user of users) {
+    if (user.name === config.currentUserName) {
+      console.log(`* ${user.name} (current)`);
+    } else {
+      console.log(`* ${user.name}`);
+    }
+  }
 }

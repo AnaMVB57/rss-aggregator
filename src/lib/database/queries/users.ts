@@ -7,6 +7,12 @@ export async function createUser(name: string) {
   return result;
 }
 
+export async function getUsers() {
+  let result = [];
+  result = await db.select().from(users);
+  return result;
+}
+
 export async function getUserByName(userName: string) {
   const [result] = await db
     .select()
