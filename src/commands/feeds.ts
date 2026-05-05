@@ -1,0 +1,115 @@
+import { XMLParser } from "fast-xml-parser";
+import { Feed, User } from "../lib/database/schema/schema.js";
+import { readConfig } from "../config.js";
+import { getUserByName } from "../lib/database/queries/users.js";
+import { createFeed } from "../lib/database/queries/feeds.js";
+
+type RSSFeed = {
+  channel: {
+    title: string;
+    link: string;
+    description: string;
+    item: RSSItem[];
+  };
+};
+
+type RSSItem = {
+  title: string;
+  link: string;
+  description: string;
+  pubDate: string;
+};
+
+export async function handlerAddFeed(cmdName: string, ...args: string[]) {
+  if (args.length !== 2) {
+    throw new Error("Usage: addfeed <name> <url>");
+  }
+
+  const config = readConfig();
+  const currentUser = config.currentUserName;
+  if (!currentUser) {
+    throw new Error("No current user set. Please login first.");
+  }
+
+  const user = await getUserByName(currentUser);
+  if (!user) {
+    throw new Error(`User ${currentUser} not found in database.`);
+  }
+
+  const name = args[0];
+  const url = args[1];
+  const feed = await createFeed(name, url, user.id);
+  printFeed(feed, user);
+}
+
+function printFeed(feed: Feed, user: User) {
+  console.log("Feed created successfully!");
+  console.log(`  ID:          ${feed.id}`);
+  console.log(`  Name:        ${feed.name}`);
+  console.log(`  URL:         ${feed.url}`);
+  console.log(`  User:        ${user.name}`);
+  console.log(`  Created at:  ${feed.createdAt}`);
+}
+
+export async function handleAggregate(cmdName: string, ...args: string[]) {
+  const feed = await fetchFeed("https://www.wagslane.dev/index.xml");
+  console.log(JSON.stringify(feed));
+}
+
+export async function fetchFeed(feedURL: string): Promise<RSSFeed> {
+  const response = await fetch(feedURL, {
+    headers: { "User-Agent": "rss_aggregator" },
+  });
+
+  const text = await response.text();
+  const xmlParser = new XMLParser({ processEntities: false });
+  const parsedFeed = xmlParser.parse(text);
+
+  if(!parsedFeed.rss.channel){
+    throw new Error("Error - Channel does not exist.");
+  }
+
+  const channel = parsedFeed.rss.channel;
+
+  if (typeof channel.title !== "string") {
+    throw new Error("Invalid RSS feed - missing title field.");
+  }
+  if (typeof channel.link !== "string") {
+    throw new Error("Invalid RSS feed - missing link field.");
+  }
+  if (typeof channel.description !== "string") {
+    throw new Error("Invalid RSS feed - missing description field.");
+  }
+
+  let rawItems = [];
+  if (channel.item) {
+    rawItems = Array.isArray(channel.item) ? channel.item : [channel.item];
+  }
+
+  const items: RSSItem[] = [];
+  for (const item of rawItems) {
+    if (
+      typeof item.title !== "string" ||
+      typeof item.link !== "string" ||
+      typeof item.description !== "string" ||
+      typeof item.pubDate !== "string"
+    ) {
+      continue;
+    }
+    items.push({
+      title: item.title,
+      link: item.link,
+      description: item.description,
+      pubDate: item.pubDate,
+    });
+  }
+
+  return {
+    channel: {
+      title: channel.title,
+      link: channel.link,
+      description: channel.description,
+      item: items,
+    },
+  };
+}
