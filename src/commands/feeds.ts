@@ -2,7 +2,11 @@ import { XMLParser } from "fast-xml-parser";
 import { Feed, User } from "../lib/database/schema/schema.js";
 import { readConfig } from "../config.js";
 import { getUserByName } from "../lib/database/queries/users.js";
-import { createFeed } from "../lib/database/queries/feeds.js";
+import {
+  createFeed,
+  getAllFeeds,
+  getUserByFeedUserId,
+} from "../lib/database/queries/feeds.js";
 
 type RSSFeed = {
   channel: {
@@ -22,7 +26,7 @@ type RSSItem = {
 
 export async function handlerAddFeed(cmdName: string, ...args: string[]) {
   if (args.length !== 2) {
-    throw new Error("Usage: addfeed <name> <url>");
+    throw new Error(`Usage: ${cmdName} <name> <url>`);
   }
 
   const config = readConfig();
@@ -36,10 +40,39 @@ export async function handlerAddFeed(cmdName: string, ...args: string[]) {
     throw new Error(`User ${currentUser} not found in database.`);
   }
 
-  const name = args[0];
+  const feedName = args[0];
   const url = args[1];
-  const feed = await createFeed(name, url, user.id);
+  const feed = await createFeed(feedName, url, user.id);
+
+  if (!feed) {
+    throw new Error(`Failed to create feed.`);
+  }
+
+  console.log("Feed created successfully!");
   printFeed(feed, user);
+}
+
+export async function handlerFeeds() {
+  try {
+    const allFeeds = await getAllFeeds();
+
+    if (allFeeds.length === 0) {
+      console.log("No feeds found.");
+      return;
+    }
+
+    console.log("Feeds: ");
+    for (const feed of allFeeds) {
+      const user = await getUserByFeedUserId(feed.user_id);
+      console.log("------------------------------------------");
+      console.log(`|  Name:        ${feed.name}`);
+      console.log(`|  URL:         ${feed.url}`);
+      console.log(`|  User:        ${user?.name ?? "unknown"}`);
+      console.log("------------------------------------------");
+    }
+  } catch (error) {
+    throw new Error(`Error: ${error}`);
+  }
 }
 
 function printFeed(feed: Feed, user: User) {
@@ -51,7 +84,7 @@ function printFeed(feed: Feed, user: User) {
   console.log(`  Created at:  ${feed.createdAt}`);
 }
 
-export async function handleAggregate(cmdName: string, ...args: string[]) {
+export async function handleAggregate() {
   const feed = await fetchFeed("https://www.wagslane.dev/index.xml");
   console.log(JSON.stringify(feed));
 }
@@ -65,7 +98,7 @@ export async function fetchFeed(feedURL: string): Promise<RSSFeed> {
   const xmlParser = new XMLParser({ processEntities: false });
   const parsedFeed = xmlParser.parse(text);
 
-  if(!parsedFeed.rss.channel){
+  if (!parsedFeed.rss.channel) {
     throw new Error("Error - Channel does not exist.");
   }
 
