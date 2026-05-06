@@ -1,5 +1,11 @@
 import { XMLParser } from "fast-xml-parser";
-import { Feed, User } from "../lib/database/schema/schema.js";
+import {
+  Feed,
+  feedFollows,
+  feeds,
+  User,
+  users,
+} from "../lib/database/schema/schema.js";
 import { readConfig } from "../config.js";
 import { getUserByName } from "../lib/database/queries/users.js";
 import {
@@ -7,6 +13,8 @@ import {
   getAllFeeds,
   getUserByFeedUserId,
 } from "../lib/database/queries/feeds.js";
+import { db } from "../lib/database/db.js";
+import { eq } from "drizzle-orm";
 
 type RSSFeed = {
   channel: {
@@ -23,6 +31,33 @@ type RSSItem = {
   description: string;
   pubDate: string;
 };
+
+export async function createFeedFollow(userId: string, feedId: string) {
+  const [newFeedFollow] = await db
+    .insert(feedFollows)
+    .values({
+      userId,
+      feedId,
+    })
+    .returning();
+
+  const [result] = await db
+    .select({
+      id: feedFollows.id,
+      createdAt: feedFollows.createdAt,
+      updatedAt: feedFollows.updatedAt,
+      userId: feedFollows.userId,
+      feedId: feedFollows.feedId,
+      feedName: feeds.name,
+      userName: users.name,
+    })
+    .from(feedFollows)
+    .innerJoin(feeds, eq(feedFollows.feedId, feeds.id))
+    .innerJoin(users, eq(feedFollows.userId, users.id))
+    .where(eq(feedFollows.id, newFeedFollow.id));
+
+  return result;
+}
 
 export async function handlerAddFeed(cmdName: string, ...args: string[]) {
   if (args.length !== 2) {
@@ -47,6 +82,9 @@ export async function handlerAddFeed(cmdName: string, ...args: string[]) {
   if (!feed) {
     throw new Error(`Failed to create feed.`);
   }
+
+  const feedFollow = await createFeedFollow(user.id, feed.id); // ← nuevo
+  console.log(`Following feed: ${feedFollow.feedName}`);
 
   console.log("Feed created successfully!");
   printFeed(feed, user);

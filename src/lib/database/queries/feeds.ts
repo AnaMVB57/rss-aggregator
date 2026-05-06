@@ -23,3 +23,11 @@ export async function getUserByFeedUserId(userId: string) {
     .where(eq(users.id, userId));
   return result;
 }
+
+export async function getFeedByUrl(url: string) {
+  const [result] = await db
+    .select()
+    .from(feeds)
+    .where(eq(feeds.url, url));
+  return result;
+}

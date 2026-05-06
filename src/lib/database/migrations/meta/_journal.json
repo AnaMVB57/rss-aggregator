@@ -15,6 +15,13 @@
       "when": 1778003185366,
       "tag": "0001_minor_pepper_potts",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1778072789945,
+      "tag": "0002_productive_husk",
+      "breakpoints": true
     }
   ]
 }
