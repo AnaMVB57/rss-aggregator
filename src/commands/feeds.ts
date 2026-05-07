@@ -1,13 +1,11 @@
 import { XMLParser } from "fast-xml-parser";
-import {
-  Feed,
-  User,
-} from "../lib/database/schema/schema.js";
+import { Feed, User } from "../lib/database/schema/schema.js";
 import { readConfig } from "../config.js";
 import {
   createFeed,
   getAllFeeds,
   getUserByFeedUserId,
+  scrapeFeeds,
 } from "../lib/database/queries/feeds.js";
 import { createFeedFollow } from "./feedFollows.js";
 
@@ -27,7 +25,11 @@ type RSSItem = {
   pubDate: string;
 };
 
-export async function handlerAddFeed(cmdName: string, user: User, ...args: string[]) {
+export async function handlerAddFeed(
+  cmdName: string,
+  user: User,
+  ...args: string[]
+) {
   if (args.length !== 2) {
     throw new Error(`Usage: ${cmdName} <name> <url>`);
   }
@@ -81,18 +83,70 @@ export async function handlerFeeds() {
   }
 }
 
+function parseDuration(durationStr: string): number {
+  const regex = /^(\d+)(ms|s|m|h)$/;
+  const match = durationStr.match(regex);
+
+  if (!match) {
+    throw new Error(
+      `Invalid duration format: ${durationStr}. Use formats like 1s, 1m, 1h`,
+    );
+  }
+
+  const value = parseInt(match[1]);
+  const unit = match[2];
+
+  switch (unit) {
+    case "ms":
+      return value;
+    case "s":
+      return value * 1000;
+    case "m":
+      return value * 60000;
+    case "h":
+      return value * 3600000;
+    default:
+      throw new Error(`Unknown unit: ${unit}`);
+  }
+}
+
 function printFeed(feed: Feed, user: User) {
-  console.log("Feed created successfully!");
+  console.log("------------------------------------------");
   console.log(`  ID:          ${feed.id}`);
   console.log(`  Name:        ${feed.name}`);
   console.log(`  URL:         ${feed.url}`);
   console.log(`  User:        ${user.name}`);
   console.log(`  Created at:  ${feed.createdAt}`);
+  console.log("------------------------------------------");
 }
 
-export async function handleAggregate() {
-  const feed = await fetchFeed("https://www.wagslane.dev/index.xml");
-  console.log(JSON.stringify(feed));
+export async function handleAggregate(cmdName: string, ...args: string[]) {
+  if (args.length !== 1) {
+    throw new Error(`Usage: ${cmdName} <time_between_reqs> (e.g. 1s, 1m, 1h)`);
+  }
+
+  const timeBetweenRequests = args[0];
+  const duration = parseDuration(timeBetweenRequests);
+
+  if (!duration) {
+    throw new Error(`Invalid duration - ${duration} - use format (1000ms, 1s, 1m or 1h)`);
+  }
+
+  console.log(`Collecting feeds every ${timeBetweenRequests}`);
+
+  scrapeFeeds().catch(console.error);
+
+  const interval = setInterval(() => {
+    scrapeFeeds().catch(console.error);
+  }, duration);
+
+  await new Promise<void>((resolve) => {
+    process.on("SIGINT", () => {
+      console.log("Shutting down feed aggregator...");
+      clearInterval(interval);
+      resolve();
+    });
+  });
 }
 
 export async function fetchFeed(feedURL: string): Promise<RSSFeed> {
