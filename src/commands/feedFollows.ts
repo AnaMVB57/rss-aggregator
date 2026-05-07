@@ -1,8 +1,9 @@
 import { readConfig } from "../config.js";
+import { db } from "../lib/database/db.js";
 import { deleteFeedFollow, getFeedFollowsForUser } from "../lib/database/queries/feedFollows.js";
 import { getFeedByUrl } from "../lib/database/queries/feeds.js";
-import { User } from "../lib/database/schema/schema.js";
-import { createFeedFollow } from "./feeds.js";
+import { feedFollows, feeds, User, users } from "../lib/database/schema/schema.js";
+import { eq } from "drizzle-orm";
 
 export async function handlerFollow(
   cmdName: string,
@@ -28,6 +29,33 @@ export async function handlerFollow(
   const feedFollow = await createFeedFollow(user.id, feed.id);
   console.log(`Following feed: ${feedFollow.feedName}`);
   console.log(`User: ${feedFollow.userName}`);
+}
+
+export async function createFeedFollow(userId: string, feedId: string) {
+  const [newFeedFollow] = await db
+    .insert(feedFollows)
+    .values({
+      userId,
+      feedId,
+    })
+    .returning();
+
+  const [result] = await db
+    .select({
+      id: feedFollows.id,
+      createdAt: feedFollows.createdAt,
+      updatedAt: feedFollows.updatedAt,
+      userId: feedFollows.userId,
+      feedId: feedFollows.feedId,
+      feedName: feeds.name,
+      userName: users.name,
+    })
+    .from(feedFollows)
+    .innerJoin(feeds, eq(feedFollows.feedId, feeds.id))
+    .innerJoin(users, eq(feedFollows.userId, users.id))
+    .where(eq(feedFollows.id, newFeedFollow.id));
+
+  return result;
 }
 
 export async function handlerListFeedFollows(

@@ -1,13 +1,13 @@
 import {
   type CommandsRegistry,
-  handleReset,
-  middlewareLoggedIn,
   registerCommand,
   runCommand,
 } from "./commands/commands.js";
 import { handlerLogin, handlerRegister, handlerListUsers } from "./commands/users.js";
 import { handleAggregate, handlerAddFeed, handlerFeeds } from "./commands/feeds.js";
 import { handlerFollow, handlerListFeedFollows, handlerUnfollow} from "./commands/feedFollows.js";
+import { middlewareLoggedIn } from "./commands/middleware/middleware.js";
+import { handleReset } from "./commands/reset.js";
 
 async function main() {
   const args = process.argv.slice(2);

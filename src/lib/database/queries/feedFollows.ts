@@ -1,7 +1,6 @@
 import { and, eq } from "drizzle-orm";
 import { db } from "../db.js";
 import { feedFollows, feeds, users } from "../schema/schema.js";
-import { getFeedByUrl } from "./feeds.js";
 
 export async function getFeedFollowsForUser(userId: string) {
   const result = await db
