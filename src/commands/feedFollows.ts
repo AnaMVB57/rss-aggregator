@@ -1,11 +1,14 @@
 import { readConfig } from "../config.js";
-import { getFeedFollowsForUser } from "../lib/database/queries/feedfollows.js";
+import { deleteFeedFollow, getFeedFollowsForUser } from "../lib/database/queries/feedFollows.js";
 import { getFeedByUrl } from "../lib/database/queries/feeds.js";
-import { getUserByName } from "../lib/database/queries/users.js";
 import { User } from "../lib/database/schema/schema.js";
 import { createFeedFollow } from "./feeds.js";
 
-export async function handlerFollow(cmdName: string, user: User, ...args: string[]) {
+export async function handlerFollow(
+  cmdName: string,
+  user: User,
+  ...args: string[]
+) {
   if (args.length !== 1) {
     throw new Error(`Usage: ${cmdName} <url>`);
   }
@@ -27,14 +30,11 @@ export async function handlerFollow(cmdName: string, user: User, ...args: string
   console.log(`User: ${feedFollow.userName}`);
 }
 
-export async function handlerFollowing(cmdName: string, user: User, ...args: string[]) {
-  const config = readConfig();
-  const currentUser = config.currentUserName;
-
-  if (!currentUser) {
-    throw new Error("No current user configured");
-  }
-
+export async function handlerListFeedFollows(
+  cmdName: string,
+  user: User,
+  ...args: string[]
+) {
   const userFollows = await getFeedFollowsForUser(user.id);
 
   if (userFollows.length === 0) {
@@ -49,4 +49,25 @@ export async function handlerFollowing(cmdName: string, user: User, ...args: str
     console.log(`-> ${follow.feedName}`);
     console.log("------------------------------------------");
   }
+}
+
+export async function handlerUnfollow(
+  cmdName: string,
+  user: User,
+  ...args: string[]
+) {
+  if (args.length !== 1) {
+    throw new Error(`Usage: ${cmdName} <url>`);
+  }
+  const feedUrl = args[0];
+
+  const feed = await getFeedByUrl(feedUrl);
+
+  const result = await deleteFeedFollow(user.id, feed.id)
+
+  if (!result) {
+    throw new Error(`Failed to unfollow the feed ${feedUrl}`);
+  }
+
+  console.log(`You have unfollowed ${(await getFeedByUrl(feedUrl)).name}`);
 }
