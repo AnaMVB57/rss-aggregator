@@ -59,18 +59,18 @@ export async function createFeedFollow(userId: string, feedId: string) {
   return result;
 }
 
-export async function handlerAddFeed(cmdName: string, ...args: string[]) {
+export async function handlerAddFeed(cmdName: string, user: User, ...args: string[]) {
   if (args.length !== 2) {
     throw new Error(`Usage: ${cmdName} <name> <url>`);
   }
 
   const config = readConfig();
   const currentUser = config.currentUserName;
+
   if (!currentUser) {
     throw new Error("No current user set. Please login first.");
   }
 
-  const user = await getUserByName(currentUser);
   if (!user) {
     throw new Error(`User ${currentUser} not found in database.`);
   }

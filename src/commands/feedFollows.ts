@@ -2,9 +2,10 @@ import { readConfig } from "../config.js";
 import { getFeedFollowsForUser } from "../lib/database/queries/feedfollows.js";
 import { getFeedByUrl } from "../lib/database/queries/feeds.js";
 import { getUserByName } from "../lib/database/queries/users.js";
+import { User } from "../lib/database/schema/schema.js";
 import { createFeedFollow } from "./feeds.js";
 
-export async function handlerFollow(cmdName: string, ...args: string[]) {
+export async function handlerFollow(cmdName: string, user: User, ...args: string[]) {
   if (args.length !== 1) {
     throw new Error(`Usage: ${cmdName} <url>`);
   }
@@ -14,11 +15,6 @@ export async function handlerFollow(cmdName: string, ...args: string[]) {
 
   if (!currentUser) {
     throw new Error("No current user configured");
-  }
-
-  const user = await getUserByName(currentUser);
-  if (!user) {
-    throw new Error(`User ${currentUser} not found.`);
   }
 
   const feed = await getFeedByUrl(url);
@@ -31,17 +27,12 @@ export async function handlerFollow(cmdName: string, ...args: string[]) {
   console.log(`User: ${feedFollow.userName}`);
 }
 
-export async function handlerFollowing(cmdName: string, ...args: string[]) {
+export async function handlerFollowing(cmdName: string, user: User, ...args: string[]) {
   const config = readConfig();
   const currentUser = config.currentUserName;
 
   if (!currentUser) {
     throw new Error("No current user configured");
-  }
-
-  const user = await getUserByName(currentUser);
-  if (!user) {
-    throw new Error(`User ${currentUser} not found.`);
   }
 
   const userFollows = await getFeedFollowsForUser(user.id);
